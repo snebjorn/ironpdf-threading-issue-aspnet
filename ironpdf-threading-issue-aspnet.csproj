@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ironpdf.threading" Version="2020.12.2" />
+    <PackageReference Include="ironpdf.threading" Version="2020.12.2.1" />
   </ItemGroup>
 
 </Project>
