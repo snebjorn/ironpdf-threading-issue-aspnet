@@ -118,7 +118,8 @@ namespace ironpdf_threading_issue_aspnet
 
         public async Task<PdfDocument> HtmlToDocumentAsync(string html, int i)
         {
-            using var renderer = new HtmlToPdf();
+            var headerHtml = await GetHtmlAsync(i);
+            using var renderer = new HtmlToPdf(new PdfPrintOptions { Header = new HtmlHeaderFooter { HtmlFragment = headerHtml } });
             var pdf = await renderer.RenderHtmlAsPdfAsync(html);
             Console.WriteLine($"Generated html for: {i}");
 
@@ -129,7 +130,8 @@ namespace ironpdf_threading_issue_aspnet
         {
             var imageDataURL = Util.ImageToDataUri(Image.FromStream(imageStream));
             var html = $@"<h1>{i}</h1><img style=""max-width: 100%; max-height: 60%;"" src=""{imageDataURL}"">";
-            using var renderer = new HtmlToPdf();
+            var headerHtml = await GetHtmlAsync(i);
+            using var renderer = new HtmlToPdf(new PdfPrintOptions { Header = new HtmlHeaderFooter { HtmlFragment = headerHtml } });
             var pdf = await renderer.RenderHtmlAsPdfAsync(html);
             Console.WriteLine($"Generated image for: {i}");
 
