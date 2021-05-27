@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using IronPdf;
+using IronPdf.Imaging;
+using IronPdf.Rendering;
 
 namespace ironpdf_threading_issue_aspnet
 {
@@ -84,7 +86,7 @@ namespace ironpdf_threading_issue_aspnet
 
         public async Task<PdfDocument> GetPdfPdfAsync(int i)
         {
-            using var stream = await GetPdfStreamAsync();
+            var stream = await GetPdfStreamAsync();
             var pdf = PdfToDocument(stream, i);
 
             return pdf;
@@ -128,7 +130,7 @@ namespace ironpdf_threading_issue_aspnet
 
         public async Task<PdfDocument> ImageToDocumentAsync(Stream imageStream, int i)
         {
-            var imageDataURL = Util.ImageToDataUri(Image.FromStream(imageStream));
+            var imageDataURL = ImageUtilities.ImageToDataUri(Image.FromStream(imageStream));
             var html = $@"<h1>{i}</h1><img style=""max-width: 100%; max-height: 60%;"" src=""{imageDataURL}"">";
             var headerHtml = await GetHtmlAsync(i);
             using var renderer = new HtmlToPdf(new PdfPrintOptions { Header = new HtmlHeaderFooter { HtmlFragment = headerHtml } });

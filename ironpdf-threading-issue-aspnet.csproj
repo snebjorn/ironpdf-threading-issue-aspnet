@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ironpdf" Version="2021.3.1" />
+    <PackageReference Include="IronPdf.EAP" Version="2021.5.1.1" />
   </ItemGroup>
 
 </Project>
