@@ -20,41 +20,41 @@ namespace ironpdf_threading_issue_aspnet
         public async Task DoSimpleWorkAsync()
         {
             Console.WriteLine($"Started simple work...");
-            var tasks = Enumerable.Range(1, _iterations).Select(i => HtmlToDocumentAsync("hello", i));
-            var pdfs = await Task.WhenAll(tasks);
+            IEnumerable<Task<PdfDocument>> tasks = Enumerable.Range(1, _iterations).Select(i => HtmlToDocumentAsync("hello", i));
+            PdfDocument[] pdfs = await Task.WhenAll(tasks);
 
             Console.WriteLine($"Merging PDFs: Started...");
-            using var pdf = PdfDocument.Merge(pdfs);
+            using PdfDocument pdf = PdfDocument.Merge(pdfs);
             Console.WriteLine($"Merging PDFs: Done!");
-            pdf.SaveAs("output.pdf");
+            _ = pdf.SaveAs("output.pdf");
         }
 
         // this will work but it'll generate the PDFs one at a time 😒
         public async Task DoSequentialWorkAsync()
         {
             Console.WriteLine($"Started sequential work...");
-            var pdfs = new List<PdfDocument>();
-            foreach (var i in Enumerable.Range(1, _iterations))
+            List<PdfDocument> pdfs = new();
+            foreach (int i in Enumerable.Range(1, _iterations))
             {
                 pdfs.Add(await HtmlToDocumentAsync("hello", i));
             }
 
             Console.WriteLine($"Merging PDFs: Started...");
-            using var pdf = PdfDocument.Merge(pdfs);
+            using PdfDocument pdf = PdfDocument.Merge(pdfs);
             Console.WriteLine($"Merging PDFs: Done!");
-            pdf.SaveAs("output.pdf");
+            _ = pdf.SaveAs("output.pdf");
         }
 
         // this deadlocks
         public async Task DoAdvancedWorkAsync()
         {
             Console.WriteLine($"Started advanced work...");
-            var tasks = Enumerable.Range(1, _iterations).Select(i => GetPdfAsync(i));
-            var pdfs = await Task.WhenAll(tasks);
+            IEnumerable<Task<PdfDocument>> tasks = Enumerable.Range(1, _iterations).Select(i => GetPdfAsync(i));
+            PdfDocument[] pdfs = await Task.WhenAll(tasks);
             Console.WriteLine($"Merging PDFs: Started...");
-            using var pdf = PdfDocument.Merge(pdfs);
+            using PdfDocument pdf = PdfDocument.Merge(pdfs);
             Console.WriteLine($"Merging PDFs: Done!");
-            pdf.SaveAs("output.pdf");
+            _ = pdf.SaveAs("output.pdf");
         }
 
         public async Task<PdfDocument> GetPdfAsync(int i)
@@ -70,31 +70,31 @@ namespace ironpdf_threading_issue_aspnet
 
         public async Task<PdfDocument> GetHtmlPdfAsync(int i)
         {
-            var html = await GetHtmlAsync(i);
-            var pdf = await HtmlToDocumentAsync(html, i);
+            string html = await GetHtmlAsync(i);
+            PdfDocument pdf = await HtmlToDocumentAsync(html, i);
 
             return pdf;
         }
 
         public async Task<PdfDocument> GetImagePdfAsync(int i)
         {
-            using var image = await GetImageAsync();
-            var pdf = await ImageToDocumentAsync(image, i);
+            using Stream image = await GetImageAsync();
+            PdfDocument pdf = await ImageToDocumentAsync(image, i);
 
             return pdf;
         }
 
         public async Task<PdfDocument> GetPdfPdfAsync(int i)
         {
-            var stream = await GetPdfStreamAsync();
-            var pdf = PdfToDocument(stream, i);
+            Stream stream = await GetPdfStreamAsync();
+            PdfDocument pdf = PdfToDocument(stream, i);
 
             return pdf;
         }
 
         public async Task<string> GetHtmlAsync(int i)
         {
-            var rand = new Random().Next(_minDelay, _maxDelay);
+            int rand = new Random().Next(_minDelay, _maxDelay);
             await Task.Delay(rand); // simulate download time
 
             return $"<h1>Hello from {i} - {rand}</h1>";
@@ -102,27 +102,28 @@ namespace ironpdf_threading_issue_aspnet
 
         public async Task<Stream> GetImageAsync()
         {
-            var rand = new Random().Next(_minDelay, _maxDelay);
+            int rand = new Random().Next(_minDelay, _maxDelay);
             await Task.Delay(rand); // simulate download time
 
-            var stream = File.OpenRead("monkeybusiness.jpg");
+            FileStream stream = File.OpenRead("monkeybusiness.jpg");
             return stream;
         }
 
         public async Task<Stream> GetPdfStreamAsync()
         {
-            var rand = new Random().Next(_minDelay, _maxDelay);
+            int rand = new Random().Next(_minDelay, _maxDelay);
             await Task.Delay(rand); // simulate download time
 
-            var stream = File.OpenRead("testpdf.pdf");
+            FileStream stream = File.OpenRead("testpdf.pdf");
             return stream;
         }
 
         public async Task<PdfDocument> HtmlToDocumentAsync(string html, int i)
         {
-            var headerHtml = await GetHtmlAsync(i);
-            using var renderer = new HtmlToPdf(new PdfPrintOptions { Header = new HtmlHeaderFooter { HtmlFragment = headerHtml } });
-            var pdf = await renderer.RenderHtmlAsPdfAsync(html);
+            string headerHtml = await GetHtmlAsync(i);
+            ChromePdfRenderer renderer = new();
+            renderer.RenderingOptions.HtmlHeader = new HtmlHeaderFooter { HtmlFragment = headerHtml };
+            PdfDocument pdf = await renderer.RenderHtmlAsPdfAsync(html);
             Console.WriteLine($"Generated html for: {i}");
 
             return pdf;
@@ -130,11 +131,12 @@ namespace ironpdf_threading_issue_aspnet
 
         public async Task<PdfDocument> ImageToDocumentAsync(Stream imageStream, int i)
         {
-            var imageDataURL = ImageUtilities.ImageToDataUri(Image.FromStream(imageStream));
-            var html = $@"<h1>{i}</h1><img style=""max-width: 100%; max-height: 60%;"" src=""{imageDataURL}"">";
-            var headerHtml = await GetHtmlAsync(i);
-            using var renderer = new HtmlToPdf(new PdfPrintOptions { Header = new HtmlHeaderFooter { HtmlFragment = headerHtml } });
-            var pdf = await renderer.RenderHtmlAsPdfAsync(html);
+            string imageDataURL = ImageUtilities.ImageToDataUri(Image.FromStream(imageStream));
+            string html = $@"<h1>{i}</h1><img style=""max-width: 100%; max-height: 60%;"" src=""{imageDataURL}"">";
+            string headerHtml = await GetHtmlAsync(i);
+            ChromePdfRenderer renderer = new();
+            renderer.RenderingOptions.HtmlHeader = new HtmlHeaderFooter { HtmlFragment = headerHtml };
+            PdfDocument pdf = await renderer.RenderHtmlAsPdfAsync(html);
             Console.WriteLine($"Generated image for: {i}");
 
             return pdf;
@@ -142,7 +144,7 @@ namespace ironpdf_threading_issue_aspnet
 
         public PdfDocument PdfToDocument(Stream pdfStreamReader, int i)
         {
-            var pdf = new PdfDocument(pdfStreamReader);
+            PdfDocument pdf = new(pdfStreamReader);
             Console.WriteLine($"Generated pdf for: {i}");
 
             return pdf;
