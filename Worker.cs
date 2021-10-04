@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using IronPdf;
 using IronPdf.Imaging;
@@ -15,6 +16,13 @@ namespace ironpdf_threading_issue_aspnet
         private readonly int _iterations = 10; // increase if no deadlock occurs
         private readonly int _minDelay = 100;
         private readonly int _maxDelay = 1000;
+
+        public Worker()
+        {
+            IronPdf.Logging.Logger.EnableDebugging = true;
+            IronPdf.Logging.Logger.LogFilePath = "Default.log"; //May be set to a direction name or full file name
+            IronPdf.Logging.Logger.LoggingMode = IronPdf.Logging.Logger.LoggingModes.All;
+        }
 
         // this deadlocks
         public async Task DoSimpleWorkAsync()
@@ -57,6 +65,33 @@ namespace ironpdf_threading_issue_aspnet
             _ = pdf.SaveAs("output.pdf");
         }
 
+        public async Task DoTableBreakWorkAsync()
+        {
+            StringBuilder tableRowsBuilder = new();
+            for (int i = 0; i < 100; i++)
+            {
+                _ = tableRowsBuilder.Append(@"<tr><td>TEST</td></tr>");
+            }
+            string html = @$"
+                <table>
+                    <thead>
+                        <tr>
+                            <th>HEADER</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {tableRowsBuilder}
+                    </thead>
+                </table>
+            ";
+
+            ChromePdfRenderer renderer = new();
+            PdfDocument pdf = await renderer.RenderHtmlAsPdfAsync(html);
+
+            Console.WriteLine($"Generated table break pdf");
+            _ = pdf.SaveAs("output.pdf");
+        }
+
         public async Task<PdfDocument> GetPdfAsync(int i)
         {
             return (i % 3) switch
@@ -89,7 +124,13 @@ namespace ironpdf_threading_issue_aspnet
             Stream stream = await GetPdfStreamAsync();
             PdfDocument pdf = PdfToDocument(stream, i);
 
-            return pdf;
+            HtmlHeaderFooter htmlHeader = new()
+            {
+                HtmlFragment = "Test header",
+            };
+            PdfDocument pdfWithHeader = pdf.AddHTMLHeaders(htmlHeader, 50, 50, 50);
+
+            return pdfWithHeader;
         }
 
         public async Task<string> GetHtmlAsync(int i)

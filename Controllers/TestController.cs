@@ -35,5 +35,13 @@ namespace ironpdf_threading_issue_aspnet
             await worker.DoAdvancedWorkAsync();
             return Ok();
         }
+
+        [HttpGet]
+        [Route("table")]
+        public async Task<IActionResult> GetTable()
+        {
+            await worker.DoTableBreakWorkAsync();
+            return Ok();
+        }
     }
 }
